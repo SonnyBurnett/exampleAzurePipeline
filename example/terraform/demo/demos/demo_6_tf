@@ -1,0 +1,65 @@
+# TERRAFORM
+terraform {
+  required_providers {
+    cloudflare = {
+      source  = "cloudflare/cloudflare"
+    }
+  }
+  required_version = ">= 0.13"
+}
+# PROVIDERS
+provider "google" {
+  version     = "~> 3.5.0"
+  credentials = file("~/.gcloud/Terraform.json")
+  project     = var.gcp_project
+}
+provider "null" {
+  version = "~> 3.0.0"
+}
+provider "cloudflare" {
+  email   = var.cloudflare_email
+  api_key = chomp(file(var.cloudflare_api_key_file))
+  version = "~> 2.0"
+}
+
+# MODULES
+module "gcp" {
+  environment = var.environment
+  source      = "../modules/gcp"
+  source_ips  = var.source_ips
+  ttl         = local.ttl
+}
+module "ansible" {
+  environment  = var.environment
+  source       = "../modules/ansible"
+  instance_ids = local.ids
+  username     = var.username
+}
+module "cloudflare" {
+  source        = "../modules/cloudflare"
+  zone_id       = var.cloudflare_zone_id
+#  gcp_enabled   = true
+  pips        = local.pips
+#  azure_enabled = true
+#  azure_ip      = module.azure.external_ip
+  website       = var.demo_domain
+  proxied       = false
+}
+
+# LOCALS
+locals {
+  pips = tolist([module.gcp.external_ip])
+  ids  = module.gcp.instance_ids
+  ttl  = var.environment != null ? var.tf_ttl[var.environment] : 7
+}
+
+# OUTPUTS
+output external_ips {
+  value = module.gcp.static_ips
+}
+output gcp_external_ip {
+  value = module.gcp.external_ip
+}
+output website {
+  value = "https://${var.demo_domain}/"
+}

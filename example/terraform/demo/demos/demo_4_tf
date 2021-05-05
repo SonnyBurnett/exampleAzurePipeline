@@ -1,0 +1,22 @@
+# PROVIDERS
+provider "google" {
+  version     = "~> 3.5.0"
+  credentials = file("~/.gcloud/Terraform.json")
+  project     = "p02546"
+}
+
+# MODULES
+module "gcp" {
+  environment = "tst"
+  source      = "../modules/gcp"
+  source_ips  = ["0.0.0.0/0"]
+  ttl         = 7
+}
+
+# OUTPUTS
+output external_ips {
+  value = module.gcp.static_ips
+}
+output gcp_external_ip {
+  value = module.gcp.external_ip
+}

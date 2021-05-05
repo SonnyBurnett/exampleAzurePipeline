@@ -1,0 +1,30 @@
+name: Example-Pipeline-Docker
+
+trigger:
+  branches:
+    include:
+    - test
+  paths:
+    exclude:
+    - README.md
+
+pool:
+  vmImage: 'ubuntu-latest'
+
+variables:
+  - name: branchName
+    value: $(Build.SourceBranchName)
+
+stages:
+- stage: test
+  displayName: Playground in test branch stage
+  condition: eq(variables['Build.SourceBranch'], 'refs/heads/test')
+  jobs:
+  - job: container
+    steps:
+    - task: Docker@0
+      displayName: Build an image
+      inputs:
+        repository: docker-example
+        command: build
+        Dockerfile: pipeline_examples/docker/Dockerfile

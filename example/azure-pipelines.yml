@@ -1,0 +1,66 @@
+# Starter pipeline
+# Start with a minimal pipeline that you can customize to build and deploy your code.
+# Add steps that build, run tests, deploy, and more:
+# https://aka.ms/yaml
+
+name: Bobs-pipeline
+
+trigger:
+  branches:
+    include:
+    - terraform/*
+  paths:
+    exclude:
+    - README.md
+
+pool:
+  vmImage: 'ubuntu-latest'
+
+variables:
+  terraformDemoDirectory: $(Build.SourcesDirectory)/terraform/demo
+
+stages:
+- stage: Terraform
+  condition: startsWith(variables['Build.SourceBranch'], 'refs/heads/terraform/')
+  displayName: Run terraform
+  dependsOn: []
+  jobs:
+  - job: terraform
+    steps:
+    
+      # Install terraform
+    - template: templates/terraform-setup.yml
+    
+    # Replace all __variable__ tokens with pipeline variables
+    - task: qetza.replacetokens.replacetokens-task.replacetokens@3
+      displayName: "Replace tokens in *.tf"
+      inputs:
+        targetFiles: |
+          $(terraformDemoDirectory)/*.tf
+          $(terraformDemoDirectory)/arm-backend.ini
+        actionOnMissing: fail
+        tokenPrefix: "__"
+        tokenSuffix: "__"
+        enableTelemetry: False
+    
+    # Initialize terraform for Demo
+    - script: TF_IN_AUTOMATION=true terraform init -backend-config=arm-backend.ini
+      workingDirectory: $(terraformDemoDirectory)
+      displayName: init
+    
+    # Validate terraform configuration
+    - script: terraform validate
+      workingDirectory: $(terraformDemoDirectory)
+      displayName: validate
+    
+      # Run terraform apply
+    - script: terraform apply -auto-approve
+      condition: eq(variables['terraformDestroy'], 'False')
+      displayName: apply
+      workingDirectory: $(terraformDemoDirectory)
+  
+    # Run terraform destroy
+    - script: terraform destroy -auto-approve
+      condition: eq(variables['terraformDestroy'], 'True')
+      displayName: destroy
+      workingDirectory: $(terraformDemoDirectory)

@@ -1,0 +1,28 @@
+variable private_key_file {
+  type = string
+}
+# COMMON
+variable "public_ssh_key" {
+  type = string
+}
+variable "username" {
+  type = string
+}
+variable "environment" {
+  type = string
+}
+variable source_ips {
+  type = list(string)
+}
+variable tf_ttl {
+  default = {
+    tst = 7
+    acc = 31
+    prd = 45
+  }
+}
+
+# GCP
+variable "gcp_project" {
+  type = string
+}

@@ -1,0 +1,31 @@
+name: Example-Pipeline-Ansible
+
+trigger:
+  branches:
+    include:
+    - test
+  paths:
+    exclude:
+    - README.md
+
+pool:
+  vmImage: 'ubuntu-latest'
+
+variables:
+  - name: branchName
+    value: $(Build.SourceBranchName)
+
+stages:
+- stage: test
+  displayName: Only run when test branch is pushed
+  condition: eq(variables['Build.SourceBranch'], 'refs/heads/test')
+  jobs:
+  - job: ansible
+    steps:
+    - task: UsePythonVersion@0
+      inputs:
+        versionSpec: '3.6'
+    - script: |
+        python -m pip install ansible
+        ansible --version
+    - script: ansible-playbook --verbose pipeline_examples/ansible/site.yml

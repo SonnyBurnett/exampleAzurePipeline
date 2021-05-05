@@ -1,0 +1,37 @@
+# PROVIDERS
+provider "google" {
+  version     = "~> 3.5.0"
+  credentials = file("~/.gcloud/Terraform.json")
+  project     = var.gcp_project
+}
+provider "null" {
+  version = "~> 3.0.0"
+}
+
+# MODULES
+module "gcp" {
+  environment = var.environment
+  source      = "../modules/gcp"
+  source_ips  = var.source_ips
+  ttl         = local.ttl
+}
+module "ansible" {
+  environment  = var.environment
+  source       = "../modules/ansible"
+  instance_ids = local.ids
+  username     = var.username
+}
+
+# LOCALS
+locals {
+  ids  = module.gcp.instance_ids
+  ttl  = var.environment != null ? var.tf_ttl[var.environment] : 7
+}
+
+# OUTPUTS
+output external_ips {
+  value = module.gcp.static_ips
+}
+output gcp_external_ip {
+  value = module.gcp.external_ip
+}

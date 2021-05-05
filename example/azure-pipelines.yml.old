@@ -1,0 +1,90 @@
+# Starter pipeline
+# Start with a minimal pipeline that you can customize to build and deploy your code.
+# Add steps that build, run tests, deploy, and more:
+# https://aka.ms/yaml
+
+name: Bobs-pipeline
+
+trigger:
+  branches:
+    include:
+    - master
+    - develop
+    - features/*
+    - releases/*
+    - test
+    - terraform/*
+  paths:
+    exclude:
+    - README.md
+
+pool:
+  vmImage: 'ubuntu-latest'
+
+variables:
+  terraformDirectory: $(Build.SourcesDirectory)/terraform
+  # terraformVersion: 0.13.4
+  # terraformBinary: /usr/local/bin/terraform
+  # terraformDestroy: False
+  terraformDestroy: True
+
+stages:
+# Here is room for some playground testing of pipelines
+# happens only when in test branch
+- stage: test
+  displayName: 'Playground in test branch'
+  condition: eq(variables['Build.SourceBranch'], 'refs/heads/test')
+  jobs:
+  - job: test
+    steps:
+    - task: UsePythonVersion@0
+      inputs:
+        versionSpec: '3.6'
+    - script: |
+        pip3 install --upgrade pip
+        pip3 install flake8
+      displayName: 'Pip tasks'
+    - script: flake8 --ignore F401 src/*py
+      displayName: 'Code check'
+    - script: |
+        python src/bob-cli.py | grep -q 'Hello world.'
+      displayName: 'Simple tests'
+# end playground
+
+- stage: features
+  condition: startsWith(variables['Build.SourceBranch'], 'refs/heads/features/')
+  displayName: Feature stage
+  jobs:
+  - job: 
+    steps:
+    - script: echo 'Features branch pipeline step'
+
+# Run some terraform for fun
+- stage: Terraform
+  condition: startsWith(variables['Build.SourceBranch'], 'refs/heads/terraform/')
+  displayName: Run terraform
+  dependsOn: []
+  jobs:
+  - job: terraform_apply
+    condition: eq(variables['terraformDestroy'], 'False')
+    steps:
+    # Configure terraform
+    - template: templates/terraform-setup.yml
+    # Run terraform plan
+    # - script: terraform plan
+    #   workingDirectory: $(terraformDirectory)
+    #   displayName: plan
+    # Run terraform apply
+    - script: terraform apply -auto-approve
+      workingDirectory: $(terraformDirectory)
+      displayName: apply
+  
+  - job: terraform_destroy
+    condition: eq(variables['terraformDestroy'], 'True')
+    steps:
+    # Configure terraform
+    - template: templates/terraform-setup.yml
+    # Run terraform destroy
+    - script: terraform destroy -auto-approve
+      workingDirectory: $(terraformDirectory)
+      displayName: destroy

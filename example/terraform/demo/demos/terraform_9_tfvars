@@ -1,0 +1,20 @@
+# COMMON
+environment      = "prd"
+public_ssh_key   = "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDRFuF9M1v2vQBvWu/VBMgJqf+1+JGPHLzUI0YsJgbECqMX0COU5oiP09HvN8/NrQJhAMZW9YkvoMwVceduH03njYvZVHqQ+OVm2n/i7xibfDhrGdunmJTF4M5zb2gDco5GihoTQ5hDN4eG8AfQTCoxHFv4mAB9JPnA1mGBWKFrHwjj36QUaF+g5a2oLAXDP1Gq8E310mhd1GL7ydve3cQsa61kDohO0CY3GYkSqGQq/BGliq1EnyGBkMAGXBS9AMMbSkhM2nmKEkKGNfmEH98BM6iHvY94EtbCss/y/d8EiUk3KjJXG223w83ar0BnJYclC+BISBBZikeQevn7f9hP ew84ao@WPU8L0040944"
+private_key_file = "~/.ssh/gcloud_id_rsa"
+username         = "bob_ter_hark_gmail_com"
+#source_ips     = ["85.145.145.239/32"]
+source_ips  = ["0.0.0.0/0"]
+demo_domain = "terharkit.nl"
+
+# GCP
+gcp_credentials_file = "~/.gcloud/Terraform.json"
+gcp_project          = "p02546"
+
+# CLOUDFLARE
+cloudflare_email        = "bob@btunix.nl"
+cloudflare_api_key_file = "~/.cloudflare/cloudflare-api"
+cloudflare_zone_id      = "b92f4493e9887723a6843f113be3cdbd"
+
+# AZURE
+azure_rg = "rg-bobs-playground"

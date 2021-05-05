@@ -1,0 +1,83 @@
+# TERRAFORM
+terraform {
+  required_providers {
+    cloudflare = {
+      source = "cloudflare/cloudflare"
+    }
+  }
+  required_version = ">= 0.13"
+}
+# PROVIDERS
+provider "google" {
+  version     = "~> 3.5.0"
+  credentials = file(var.gcp_credentials_file)
+  project     = var.gcp_project
+}
+provider "null" {
+  version = "~> 3.0.0"
+}
+provider "cloudflare" {
+  email   = var.cloudflare_email
+  api_key = chomp(file(var.cloudflare_api_key_file))
+  version = "~> 2.0"
+}
+provider "azurerm" {
+  #  client_id       = var.client_id
+  #  client_secret   = var.client_secret
+  #  subscription_id = var.subscription_id
+  #  tenant_id       = var.tenant_id
+  version = "~> 2.30.0"
+  features {}
+}
+
+# MODULES
+module "gcp" {
+  environment = var.environment
+  source      = "../modules/gcp"
+  source_ips  = var.source_ips
+  ttl         = local.ttl
+  vm_count = 1
+}
+module "ansible" {
+  environment  = var.environment
+  source       = "../modules/ansible"
+  instance_ids = local.ids
+  username     = var.username
+}
+module "cloudflare" {
+  source  = "../modules/cloudflare"
+  zone_id = var.cloudflare_zone_id
+  pips    = local.pips
+  website = var.demo_domain
+  proxied = false
+}
+module "azure" {
+  environment    = var.environment
+  source         = "../modules/azure"
+  source_ips     = var.source_ips
+  ttl            = local.ttl
+  resource_group = var.azure_rg
+  public_ssh_key = var.public_ssh_key
+  username       = var.username
+}
+
+# LOCALS
+locals {
+  pips = tolist([module.gcp.external_ip, module.azure.external_ip])
+  ids  = "${module.azure.instance_ids}, ${module.gcp.instance_ids}"
+  ttl  = var.environment != null ? var.tf_ttl[var.environment] : 7
+}
+
+# OUTPUTS
+output external_ips {
+  value = merge(module.gcp.static_ips, module.azure.static_ips)
+}
+output gcp_external_ip {
+  value = module.gcp.external_ip
+}
+output azure_external_ip {
+  value = module.azure.external_ip
+}
+output website {
+  value = "https://${var.demo_domain}/"
+}

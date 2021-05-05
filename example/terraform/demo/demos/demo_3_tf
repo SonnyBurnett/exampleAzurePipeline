@@ -1,0 +1,111 @@
+# PROVIDERS
+provider "google" {
+  version     = "~> 3.5.0"
+  credentials = file("~/.gcloud/Terraform.json")
+  project     = "p02546"
+  region      = "us-central1"
+  zone        = "us-central1-a"
+}
+
+#RESOURCES
+resource "google_compute_network" "vpc_network" {
+  name = "tst-network"
+}
+
+resource "google_compute_firewall" "vpc_network" {
+  name    = "tst-firewall"
+  network = google_compute_network.vpc_network.name
+  allow {
+    protocol = "icmp"
+  }
+  allow {
+    protocol = "tcp"
+    ports    = ["22", "80"]
+  }
+  source_ranges = ["0.0.0.0/0"]
+}
+
+resource "google_compute_address" "vm_static_ip" {
+  count = 2
+  name  = "gcp-tst-vm00${count.index + 1}"
+}
+
+resource "google_compute_http_health_check" "hc" {
+  name               = "health-check"
+  request_path       = "/"
+  port               = 80
+  check_interval_sec = 4
+  timeout_sec        = 1
+}
+
+resource "google_compute_instance" "vm-web" {
+  count        = 2
+  name         = "gcp-tst-vm00${count.index + 1}"
+  machine_type = "f1-micro"
+  boot_disk {
+    initialize_params {
+      image = "centos-cloud/centos-8"
+    }
+  }
+  network_interface {
+    network = google_compute_network.vpc_network.name
+    access_config {
+      nat_ip = google_compute_address.vm_static_ip[count.index].address
+    }
+  }
+  labels = merge(
+    { owner = "spongebob" },
+    { provider = "gcp" },
+    { "purpose" = "web" },
+    { "environment" = "tst" },
+    { "zone" = "us-central1-a" },
+    { "location" = "us-central1" },
+    { "ttl" = 7 },
+    { "created" = formatdate("YYYYMMDD", timestamp()) },
+  )
+  lifecycle {
+    ignore_changes = [
+      labels["created"],
+    ]
+  }
+  connection {
+    type        = "ssh"
+    host        = self.network_interface[0].access_config[0].nat_ip
+    user        = "bob_ter_hark_gmail_com"
+    private_key = file(var.private_key_file)
+  }
+  provisioner "remote-exec" {
+    inline = [
+      "sudo yum install -y nginx",
+      "sudo systemctl enable nginx",
+      "sudo systemctl start nginx"
+    ]
+  }
+}
+
+resource "google_compute_target_pool" "tp" {
+  name = "tst-target-pool"
+  #region           = local.region
+  session_affinity = "NONE"
+  instances        = google_compute_instance.vm-web.*.self_link
+  health_checks    = [google_compute_http_health_check.hc.name]
+}
+
+resource "google_compute_forwarding_rule" "network-load-balancer" {
+  name = "tst-forwarding-rule"
+  #region = local.region
+  target                = google_compute_target_pool.tp.self_link
+  ip_protocol           = "TCP"
+  load_balancing_scheme = "EXTERNAL"
+}
+
+# OUTPUTS
+output external_ips {
+  value = {
+    for instance in google_compute_instance.vm-web :
+    instance.name => instance.network_interface[0].access_config[0].nat_ip
+  }
+}
+output external_lb_ip {
+  value = google_compute_forwarding_rule.network-load-balancer.ip_address
+}

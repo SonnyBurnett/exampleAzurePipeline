@@ -1,0 +1,13 @@
+- name: Simple deployment on localhost
+  hosts: localhost
+  vars:
+    somedir: /tmp/bob
+  tasks:
+  - name: some directory created
+    file:
+      path: "{{ somedir }}"
+      state: directory
+  - name: some directory removed
+    file:
+      path: "{{ somedir }}"
+      state: absent

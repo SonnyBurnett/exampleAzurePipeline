@@ -1,0 +1,50 @@
+name: Example-Pipeline-Azure-Terraform
+
+trigger:
+  branches:
+    include:
+    - test
+  paths:
+    exclude:
+    - README.md
+
+pool:
+  vmImage: 'ubuntu-latest'
+
+variables:
+  terraformDirectory: $(Build.SourcesDirectory)/pipeline_examples/terraform/sp
+
+stages:
+- stage: Terraform
+  jobs:
+  - job: terraform
+    steps:
+    # Replace all __variable__ tokens with pipeline variables
+    - task: qetza.replacetokens.replacetokens-task.replacetokens@3
+      displayName: replacetokens
+      inputs:
+        targetFiles: |
+          $(terraformDirectory)/*.tf
+        actionOnMissing: fail
+        tokenPrefix: "__"
+        tokenSuffix: "__"
+        enableTelemetry: False
+    # Initialize terraform for Demo
+    - script: TF_IN_AUTOMATION=true terraform init
+      workingDirectory: $(terraformDirectory)
+      displayName: init
+    
+    # Validate terraform configuration
+    - script: terraform validate
+      workingDirectory: $(terraformDirectory)
+      displayName: validate
+    
+    # Run terraform apply
+    - script: terraform apply -auto-approve
+      displayName: apply
+      workingDirectory: $(terraformDirectory)
+
+    # Run terraform destroy
+    - script: terraform destroy -auto-approve
+      displayName: destroy
+      workingDirectory: $(terraformDirectory)

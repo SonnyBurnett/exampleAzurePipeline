@@ -1,0 +1,53 @@
+variable private_key_file {
+  type = string
+}
+# COMMON
+variable "public_ssh_key" {
+  type = string
+}
+variable "username" {
+  type = string
+}
+variable "environment" {
+  type = string
+}
+variable source_ips {
+  type = list(string)
+}
+variable tf_ttl {
+  default = {
+    tst = 7
+    acc = 31
+    prd = 45
+  }
+}
+variable demo_domain {
+  type = string
+}
+
+# GCP
+variable "gcp_project" {
+  type = string
+}
+variable "gcp_credentials_file" {
+  type = string
+}
+
+# CLOUDFLARE
+variable "cloudflare_email" {
+  type        = string
+  description = "Cloudflare Email Address"
+}
+variable "cloudflare_api_key_file" {
+  type        = string
+  description = "Cloudflare API Key"
+}
+variable "cloudflare_zone_id" {
+  type        = string
+  description = "Cloudflare Zone ID"
+}
+
+# AZURE
+variable "azure_rg" {
+  type = string
+}

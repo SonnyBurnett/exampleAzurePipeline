@@ -1,0 +1,25 @@
+parameters:
+- name: terraformVersion
+  type: string
+  default: 0.13.5
+- name: terraformBinary
+  type: string
+  default: /usr/local/bin/terraform
+
+steps:
+# Install latest terraform
+- bash: |
+    set -e -x
+    wget --quiet https://releases.hashicorp.com/terraform/${{ parameters.terraformVersion }}/terraform_${{ parameters.terraformVersion }}_linux_amd64.zip -O terraform.zip
+    unzip -q terraform.zip
+    rm -f terraform.zip
+    sudo mv -f terraform ${{ parameters.terraformBinary }}
+  workingDirectory: $(Pipeline.Workspace)
+  displayName: Install latest terraform
+
+# Display version
+- script: terraform version
+  displayName: terraform version
+  
+
+
